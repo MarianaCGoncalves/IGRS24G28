@@ -23,10 +23,15 @@ class kamailio:
         return 0
 
     def ksr_request_route(self, msg):
+        
+        if not self.verify_domain():
+            return 1
+        
         #verificar o dominio. so acme.pt podem aceder a estes metodos.
         
         if  (msg.Method == "REGISTER"):
             #funcao para validar o dominio.
+            
             KSR.info("REGISTER R-URI: " + KSR.pv.get("$ru") + "\n")
             KSR.info("            To: " + KSR.pv.get("$tu") +
                            " Contact:"+ KSR.hdr.get("Contact") +"\n")
@@ -112,20 +117,22 @@ class kamailio:
         return 1
     
     def verify_pin(self,pin):
-        pin = KSR.get("$rb")
+        pin = KSR.pv.get("$rb")
         if pin == "0000":
             KSR.sl.send_reply(200,"OK")
             return True
         return False
     
-    def verify_domain(self,domain):
-        domain = KSR.get("$fd").split("@")[1]
+    def verify_domain(self):
+        domain = KSR.pv.get("$fd").split("@")[-1] #obter sempre a ultima parte da string
         if domain == "acme.pt":
+            KSR.sl.send_reply(200,"Authorized")
             return True
+        KSR.sl.send_reply(401,"Unauthorized")
         return False
     
     def handle_register(self,msg):
-        if KSR.get("$td") != "acme.pt":
+        if KSR.get("$fd") != "acme.pt":
             KSR.sl.send_reply(403,"Unauthorized")
             return 1
         KSR.info("REGISTER R-URI: " + KSR.pv.get("$ru"))
