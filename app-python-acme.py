@@ -24,10 +24,15 @@ class kamailio:
 
     def ksr_request_route(self, msg):
         
+        domain_status = self.verify_domain()
+        user_status = {"alice@acme.pt":"FREE","bob@acme.pt":"FREE"}
+        
+        if domain_status == "Forbidden":
+                KSR.sl.send_reply(403,"Forbidden")
+                return 1
         if  (msg.Method == "REGISTER"):
             #verifica o dominio => so acme.pt podem aceder a estes metodos
-            if not self.verify_domain():
-                return 1
+            
             
             KSR.info("REGISTER R-URI: " + KSR.pv.get("$ru") + "\n")
             KSR.info("            To: " + KSR.pv.get("$tu") +
@@ -36,17 +41,22 @@ class kamailio:
             return 1
 
         if (msg.Method == "INVITE"): 
-            #verifica o dominio => so acme.pt podem aceder a estes metodos
-            if not self.verify_domain():
-                return 1
-                                 
+            
+            #user_status = 'user_status.txt'
+            
+            
             KSR.info("INVITE R-URI: " + KSR.pv.get("$ru") + "\n")
             KSR.info("        From: " + KSR.pv.get("$fu") +
                               " To:"+ KSR.pv.get("$tu") +"\n")
             
             if (KSR.pv.get("$td") == "acme.pt"):   # Check if To domain is acme.pt
                 
-                if (KSR.pv.get("$tu") == "sip:announce@acme.pt"):  # Special To-URI
+                #for user, status in user_status.items(): KSR.info(f"User: {user}, Status: {status}")
+                
+                if (KSR.pv.get("$tu") == "sip:conference@acme.pt"): # Special To-URI
+                    
+                        
+                    KSR.info("Entrou na condição de conferência\n")
                     
                     #caso o cliente destino aceite a chamada
                     KSR.tm.t_on_reply("ksr_onreply_route_INVITE") 
@@ -54,21 +64,70 @@ class kamailio:
                     #caso o cliente destino recuse a chamada
                     KSR.tm.t_on_failure("ksr_failure_route_INVITE")
                     
-                    KSR.pv.sets("$ru", "sip:announce@127.0.0.1:5090")
+                    #pickle_file= open("user_status.txt", 'r')
+                    #user_status_list = pickle.load(pickle_file)
+                    
+                    KSR.pv.sets("$ru","sip:conference@acme.pt:5090")
+                    
+                    caller_id = KSR.pv.get("$fu").split(":")[1]
+                    called_id = KSR.pv.get("$tu").split(":")[1]
+                    
+                    #KSR.info("CALLER_ID: "+caller_id)
+                    caller_status = user_status.get(KSR.pv.get("$fu").split(":")[1])
+                    if caller_status == "FREE":
+                        user_status[caller_id] = "BUSY_CONFERENCE"
                     
                     #KSR.forward()       # Forwarding using statless mode
+                    for user, status in user_status.items(): KSR.info(f"User: {user}, Status: {status}")
                     KSR.tm.t_relay()    # Relaying using transaction mode
-                    return 1 
+                    
                 
-                if (KSR.registrar.lookup("location") == 1):  # Check if registered
-                    KSR.info("  lookup changed R-URI: " + KSR.pv.get("$ru") +"\n")
-                    KSR.rr.record_route()  # Add Record-Route header
-                    KSR.tm.t_relay()
                 
                 else:
-                    #indica que o cliente destino nao esta registado.
-                    KSR.sl.send_reply(403, "Forbidden | Recipient not registered")
+                    
+                    #pickle_file= open("user_status.txt", 'r')
+                    #user_status_list = pickle.load(pickle_file)
+                    #KSR.info("CALLER_ID: "+caller_id)
+                    #vai buscar o estado de quem está a ser chamado.
+                    KSR.info("Entrou na condição de chamada acme.pt\n")
+                    for user, status in user_status.items(): KSR.info(f"User: {user}, Status: {status}")
+                    
+                    caller_id = KSR.pv.get("$fu").split(":")[1]
+                    called_id = KSR.pv.get("$tu").split(":")[1]
+                    called_status = user_status.get(KSR.pv.get("$tu").split(":")[1])
+                    caller_id = KSR.pv.get("$fu").split(":")[1]
+                    
+                    
+                    if called_status == "FREE":
+                        caller_status = user_status.get(caller_id, "BUSY")
+                        #KSR.tm.t_relay()
+                        
+                    elif called_status == "BUSY_CONFERENCE":
+                        KSR.pv.sets("$ru","sip:inconference@acme.pt:5080")
+                        #KSR.tm.t_relay()
+                        
+                    else: 
+                        KSR.pv.sets("$ru","sip:busyann@acme.pt:5080")
+                        #KSR.tm.t_relay()
+                        
+                    #caso o cliente destino aceite a chamada
+                    #KSR.tm.t_on_reply("ksr_onreply_route_INVITE") 
+                    
+                    #caso o cliente destino recuse a chamada
+                    #KSR.tm.t_on_failure("ksr_failure_route_INVITE")
+                    
+                    #KSR.rr.record_route()    
+                    
+                    #pickle_file.close()
+                
+                    if not self.verify_registry():
+                        KSR.sl.send_reply(403, "Forbidden | Recipient not registered")
+                #KSR.tm.t_relay()
+                #for user, status in user_status.items(): KSR.info(f"User: {user}, Status: {status}")
             else:
+                KSR.tm.t_on_reply("ksr_onreply_route_INVITE") 
+                KSR.tm.t_on_failure("ksr_failure_route_INVITE")
+                
                 KSR.rr.record_route()
                 KSR.tm.t_relay()
             return 1
@@ -90,6 +149,8 @@ class kamailio:
             KSR.registrar.lookup("location")
             KSR.rr.loose_route()
             KSR.tm.t_relay()
+            if (caller_status == "BUSY" or caller_status == "BUSY_CONFERENCE"):
+                user_status.update(caller_id, "FREE")
             # Additional behaviour for BYE - sending a MESSAGE Request
             if (KSR.pv.get("$fd") == "acme.pt"):
                 KSR.pv.sets("$uac_req(method)", "MESSAGE")
@@ -138,10 +199,10 @@ class kamailio:
     def verify_domain(self):
         domain = KSR.pv.get("$fd").split("@")[-1] #obter sempre a ultima parte da string
         if domain == "acme.pt":
-            KSR.sl.send_reply(200,"Authorized")
-            return True
-        KSR.sl.send_reply(401,"Unauthorized")
-        return False
+            #KSR.sl.send_reply(200,"OK")
+            return "OK"
+        #KSR.sl.send_reply(403,"Forbidden")
+        return "Forbidden"
     
     
     def ksr_onreply_route_INVITE(self, msg):
@@ -150,40 +211,25 @@ class kamailio:
     
     def ksr_failure_route_INVITE(self, msg):
         KSR.info("===== INVITE failure route - from kamailio python script\n")
-        
-        if self.user_in_conference(msg):
-            KSR.info("User busy in conference")
-            KSR.pv.sets("$ru","sip:inconference@127.0.0.1:5080")
-            KSR.tm.t_relay()
-            
-            #logica da tecla 0 aqui?
-
-        if self.user_in_session(msg):
-            KSR.info("User is currently busy in session")
-            KSR.pv.sets("$ru","sip:busy@127.0.0.1:5080")
-            KSR.tm.t_relay()
-    
-    def user_in_conference(self, msg):
-        
-        # se o funcionario destino estiver ocupado numa conf o pedido é reencaminhado
-        # para um servidor de anuncios, durante o anuncio o chamador pode clicar na tecla "0" 
-        # para se juntar a conferencia 
-        
-        ru = KSR.get("$ru")
-        if ru == "sip:conference@127.0.0.1:5090":
-            return True
-        return False
-    
-    def user_in_session(self,msg):
-        # se o funcionario destino está ocupado numa sessão, que nao uma conferencia
-        # o pedido é reencaminhado para um servidor de anuncios busyann@127.0.0.1:5080
-        
-        if KSR.registrar.lookup("location"):
-            user_status = KSR.registrar.get_status("location") #kamailio assume logo o funcionario destino
-            if user_status.lower() == "busy":
-                return True
-            return False
-        return 1
+        #if KSR.pv.get("$rs") == 486:
+            #KSR.pv.sets("$ru","sip:conference@127.0.0.1:5080")
+            #KSR.tm.t_relay()
+            #return 1
+        #else:
+            #KSR.info("Couldn't redirect to announce server.")
+        return 0
     
     def press_buton(self,msg):
         return 1
+    
+    def verify_registry(self):
+        if (KSR.registrar.lookup("location") == 1):  # Check if registered
+            KSR.info("  lookup changed R-URI: " + KSR.pv.get("$ru") +"\n")
+            KSR.rr.record_route()  # Add Record-Route header
+            KSR.tm.t_relay()
+            return True
+                
+        else:
+            #indica que o cliente destino nao esta registado.
+            #KSR.sl.send_reply(403, "Forbidden | Recipient not registered")
+            return False
