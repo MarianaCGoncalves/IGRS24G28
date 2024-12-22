@@ -48,7 +48,8 @@ Trello: https://trello.com/b/XQcjCSzs/igrs24g28
 
 #### Encaminhamento usando SIP para outros funcionarios acme.pt
 ![image](https://github.com/user-attachments/assets/7f4d239a-707e-44f7-8904-81f1a44eb39a)
-![image](https://github.com/user-attachments/assets/49253411-63e9-4fca-ac13-5827b0e74e7a)
+![image](https://github.com/user-attachments/assets/6726f0e5-d7f6-457b-91f2-1779a6f3c2cf)
+
 
 
 #### Juntar ou inicar uma sala de conferencias pressionando '0' 
