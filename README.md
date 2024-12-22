@@ -40,6 +40,12 @@ Trello: https://trello.com/b/XQcjCSzs/igrs24g28
 ### Reencaminhamento 
 ![image](https://github.com/user-attachments/assets/9e3b8a6b-9e1e-4d32-8874-7f5c856a4538)
 
+#### Utilizador não registado 
+![image](https://github.com/user-attachments/assets/a1781862-5ba5-4975-ae29-3e851c96b741)
+![image](https://github.com/user-attachments/assets/a5d5af52-86d2-4d1b-a7cf-30e5d60e8159)
+![image](https://github.com/user-attachments/assets/4d8d0e77-2899-4372-9ca7-c6856de444be)
+
+
 #### Encaminhamento usando SIP para outros funcionarios acme.pt
 ![image](https://github.com/user-attachments/assets/7f4d239a-707e-44f7-8904-81f1a44eb39a)
 ![image](https://github.com/user-attachments/assets/49253411-63e9-4fca-ac13-5827b0e74e7a)
