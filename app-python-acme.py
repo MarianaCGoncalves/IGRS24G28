@@ -143,6 +143,16 @@ class kamailio:
             KSR.registrar.lookup("location")
             KSR.tm.t_relay()
             return 1
+            
+#começo da lógica do reencaminhamento com o botão.
+        
+        #if (msg.Method == "INFO"):
+            #KSR.info("INFO R-URI: " + KSR.pv.get("$ru") + "\n")
+            #KSR.rr.loose_route()
+            #KSR.pv.sets("$ru","sip:conference@acme.pt:5090")
+            #KSR.tm.t_relay()
+            
+            #return 1
 
         if (msg.Method == "BYE"):
             KSR.info("BYE R-URI: " + KSR.pv.get("$ru") + "\n")
